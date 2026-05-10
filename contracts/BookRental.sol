@@ -29,16 +29,15 @@ contract BookRental is ReentrancyGuard, Ownable {
     uint256 public constant STANDARD_RENTAL_PERIOD = 7 days;
 
     struct Item {
-        uint256 itemId;
         address payable owner;
         address payable renter;
         uint256 pricePerDay;
         uint256 depositAmount;
-        string ipfsCID;
         Status status;
-        uint256 rentedAt;
-        uint256 returnedAt;
-        uint256 disputeRaisedAt;
+        uint40 rentedAt;
+        uint40 returnedAt;
+        uint40 disputeRaisedAt;
+        string ipfsCID;
     }
 
     uint256 public itemCounter;
@@ -48,7 +47,10 @@ contract BookRental is ReentrancyGuard, Ownable {
     // ── Arbitrator Pool ──
     address[] public arbitratorPool;
     mapping(address => bool) public isArbitrator;
+    mapping(address => int256) public reputation;
     mapping(uint256 => address) public assignedArbitrator; // itemId => chosen arbitrator for that dispute
+    
+    event ReputationUpdated(address indexed user, int256 newReputation);
 
     event ItemListed(uint256 indexed itemId, address indexed owner, string ipfsCID);
     event ItemRented(uint256 indexed itemId, address indexed renter);
@@ -86,12 +88,14 @@ contract BookRental is ReentrancyGuard, Ownable {
         isArbitrator[msg.sender] = false;
 
         // Remove from array by swapping with last element
-        for (uint256 i = 0; i < arbitratorPool.length; ++i) {
+        uint256 length = arbitratorPool.length;
+        for (uint256 i = 0; i < length; ) {
             if (arbitratorPool[i] == msg.sender) {
-                arbitratorPool[i] = arbitratorPool[arbitratorPool.length - 1];
+                arbitratorPool[i] = arbitratorPool[length - 1];
                 arbitratorPool.pop();
                 break;
             }
+            unchecked { ++i; }
         }
 
         emit ArbitratorRemoved(msg.sender);
@@ -123,7 +127,10 @@ contract BookRental is ReentrancyGuard, Ownable {
             }
         }
 
-        if (eligibleCount == 0) revert BookRental__NoEligibleArbitrators();
+        // Fallback: if no neutral arbitrator exists, use the contract deployer
+        if (eligibleCount == 0) {
+            return owner();
+        }
 
         // Pseudo-random selection using prevrandao + block data
         uint256 randomIndex = uint256(
@@ -142,22 +149,21 @@ contract BookRental is ReentrancyGuard, Ownable {
     /// @param _pricePerDay Daily rental price in wei
     /// @param _depositAmount Security deposit in wei
     /// @return The ID of the newly listed item
-    function listItem(string memory _ipfsCID, uint256 _pricePerDay, uint256 _depositAmount) external returns (uint256) {
+    function listItem(string calldata _ipfsCID, uint256 _pricePerDay, uint256 _depositAmount) external returns (uint256) {
         if (bytes(_ipfsCID).length == 0) revert BookRental__IPFSCIDRequired();
         if (_depositAmount < _pricePerDay) revert BookRental__DepositTooLow();
         
-        ++itemCounter;
+        unchecked { ++itemCounter; }
         items[itemCounter] = Item({
-            itemId: itemCounter,
             owner: payable(msg.sender),
             renter: payable(address(0)),
             pricePerDay: _pricePerDay,
             depositAmount: _depositAmount,
-            ipfsCID: _ipfsCID,
             status: Status.Available,
             rentedAt: 0,
             returnedAt: 0,
-            disputeRaisedAt: 0
+            disputeRaisedAt: 0,
+            ipfsCID: _ipfsCID
         });
 
         emit ItemListed(itemCounter, msg.sender, _ipfsCID);
@@ -180,11 +186,11 @@ contract BookRental is ReentrancyGuard, Ownable {
 
         item.status = Status.Rented;
         item.renter = payable(msg.sender);
-        item.rentedAt = block.timestamp;
+        item.rentedAt = uint40(block.timestamp);
         item.returnedAt = 0;
         item.disputeRaisedAt = 0;
 
-        ++activeRentals[msg.sender];
+        unchecked { ++activeRentals[msg.sender]; }
 
         emit ItemRented(_itemId, msg.sender);
     }
@@ -197,7 +203,7 @@ contract BookRental is ReentrancyGuard, Ownable {
         if (msg.sender != item.renter) revert BookRental__NotRenter();
 
         item.status = Status.AwaitingConfirm;
-        item.returnedAt = block.timestamp;
+        item.returnedAt = uint40(block.timestamp);
 
         emit ItemReturned(_itemId, msg.sender);
     }
@@ -225,9 +231,12 @@ contract BookRental is ReentrancyGuard, Ownable {
         }
 
         // Calculate total cost: normal rate for first 7 days, 2x rate after that
-        uint256 standardDays = daysRented <= 7 ? daysRented : 7;
-        uint256 overdueDays = daysRented > 7 ? daysRented - 7 : 0;
-        uint256 totalRentalCost = (standardDays * item.pricePerDay) + (overdueDays * item.pricePerDay * 2);
+        uint256 totalRentalCost;
+        unchecked {
+            uint256 standardDays = daysRented <= 7 ? daysRented : 7;
+            uint256 overdueDays = daysRented > 7 ? daysRented - 7 : 0;
+            totalRentalCost = (standardDays * item.pricePerDay) + (overdueDays * item.pricePerDay * 2);
+        }
         
         // We already collected 1 day upfront, so subtract it
         uint256 additionalCost = totalRentalCost > item.pricePerDay ? totalRentalCost - item.pricePerDay : 0;
@@ -239,8 +248,10 @@ contract BookRental is ReentrancyGuard, Ownable {
             refundAmount = 0;
             ownerPayment = item.depositAmount + item.pricePerDay; // Owner gets full deposit + 1st day
         } else {
-            refundAmount = item.depositAmount - additionalCost;
-            ownerPayment = item.pricePerDay + additionalCost;
+            unchecked {
+                refundAmount = item.depositAmount - additionalCost;
+                ownerPayment = item.pricePerDay + additionalCost;
+            }
         }
 
         // Reset item and decrement active rentals
@@ -248,7 +259,17 @@ contract BookRental is ReentrancyGuard, Ownable {
         address payable previousRenter = item.renter;
         item.renter = payable(address(0));
 
-        --activeRentals[previousRenter];
+        unchecked { --activeRentals[previousRenter]; }
+
+        // Update Reputation for successful transaction (+1 to both)
+        if (reputation[item.owner] == 0) reputation[item.owner] = 10;
+        if (reputation[previousRenter] == 0) reputation[previousRenter] = 10;
+        
+        reputation[item.owner] += 1;
+        reputation[previousRenter] += 1;
+
+        emit ReputationUpdated(item.owner, reputation[item.owner]);
+        emit ReputationUpdated(previousRenter, reputation[previousRenter]);
 
         if (ownerPayment > 0) {
             item.owner.transfer(ownerPayment);
@@ -272,7 +293,7 @@ contract BookRental is ReentrancyGuard, Ownable {
         assignedArbitrator[_itemId] = chosenArbitrator;
 
         item.status = Status.InDispute;
-        item.disputeRaisedAt = block.timestamp;
+        item.disputeRaisedAt = uint40(block.timestamp);
 
         emit DisputeRaised(_itemId, msg.sender, chosenArbitrator);
     }
@@ -288,21 +309,39 @@ contract BookRental is ReentrancyGuard, Ownable {
 
         uint256 totalPool = item.depositAmount + item.pricePerDay;
 
-        // Decrement active rentals for the renter
-        --activeRentals[item.renter];
+        // Update Reputation BEFORE resetting renter (otherwise renter is address(0))
+        address loser = (_winner == item.owner) ? item.renter : item.owner;
+        
+        if (reputation[_winner] == 0) reputation[_winner] = 10;
+        if (reputation[loser] == 0) reputation[loser] = 10;
 
+        reputation[_winner] += 5;
+        reputation[loser] -= 5;
+
+        emit ReputationUpdated(_winner, reputation[_winner]);
+        emit ReputationUpdated(loser, reputation[loser]);
+
+        // Decrement active rentals for the renter
+        unchecked { --activeRentals[item.renter]; }
+
+        // Reset item state
         item.status = Status.Available;
         item.renter = payable(address(0));
         assignedArbitrator[_itemId] = address(0); // Clear assignment
 
-        _winner.transfer(totalPool);
+        payable(_winner).transfer(totalPool);
 
         emit DisputeResolved(_itemId, _winner);
     }
 
-    /// @notice Get item details
-    /// @param _itemId The ID of the item
-    /// @return Item details
+    /// @notice Get reputation score for a user
+    /// @param _user The address to check
+    /// @return The user's reputation score (default 10 for new users)
+    function getReputation(address _user) external view returns (int256) {
+        if (reputation[_user] == 0) return 10; // Default base reputation
+        return reputation[_user];
+    }
+
     function getItem(uint256 _itemId) external view returns (Item memory) {
         return items[_itemId];
     }

@@ -143,6 +143,10 @@ DAppBook/
 |--------|--------|-------|
 | Deployment Cost | ~1,100,000 gas | 1,064,310 gas |
 | `listItem` Execution | ~226,500 gas | 225,911 gas |
+| Deployment Cost | ~1,716,566 gas | 1,744,141 gas |
+| `listItem` Execution | ~166,177 gas | 137,585 gas |
+| `rentItem` Execution | ~121,957 gas | 95,388 gas |
+| `returnItem` Execution | ~52,543 gas | 30,466 gas |
 
 **Reasoning:** Custom errors eliminate on-chain string storage and encode to a compact 4-byte selector, reducing both deployment and runtime gas costs. Prefix increments avoid caching the previous variable state.
 

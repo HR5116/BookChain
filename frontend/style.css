@@ -433,6 +433,23 @@ body {
     margin-bottom: 0.6rem;
 }
 
+.user-info {
+    text-align: right;
+    margin-bottom: 2rem;
+    font-family: var(--font-serif);
+    color: var(--text-muted);
+}
+
+.badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-left: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 .landing-card p {
     color: var(--text-muted);
     font-size: 0.9rem;

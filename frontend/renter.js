@@ -8,6 +8,8 @@ window.addEventListener('load', async () => {
     const ok = await autoConnect(connectBtn);
     if (ok) {
         dashboard.classList.remove('hidden');
+        const address = await signer.getAddress();
+        document.getElementById('userAddress').innerText = `Reader: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
         await refreshMarketplace();
         await updateRentalCount();
     }
@@ -17,6 +19,8 @@ connectBtn.addEventListener('click', async () => {
     const ok = await connectWallet(connectBtn);
     if (ok) {
         dashboard.classList.remove('hidden');
+        const address = await signer.getAddress();
+        document.getElementById('userAddress').innerText = `Reader: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
         await refreshMarketplace();
         await updateRentalCount();
     }

@@ -1,11 +1,11 @@
 const contractAddress = "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"; // Localhost deploy address
 const contractABI = [
     "function listItem(string _ipfsCID, uint256 _pricePerDay, uint256 _depositAmount) external returns (uint256)",
-    "function rentItem(uint256 _itemId) external payable",
+    "function rentItem(uint256 _itemId, bool _acceptedTerms) external payable",
     "function returnItem(uint256 _itemId) external",
     "function confirmReturn(uint256 _itemId) external",
     "function raiseDispute(uint256 _itemId) external",
-    "function items(uint256) external view returns (uint256 itemId, address owner, address renter, uint256 pricePerDay, uint256 depositAmount, string ipfsCID, uint8 status, uint256 rentedAt, uint256 returnedAt, uint256 disputeRaisedAt)"
+    "function items(uint256) external view returns (address owner, address renter, uint256 pricePerDay, uint256 depositAmount, uint8 status, uint40 rentedAt, uint40 returnedAt, uint40 disputeRaisedAt, string ipfsCID)"
 ];
 
 let provider;
@@ -147,7 +147,7 @@ document.getElementById('rentBookForm').addEventListener('submit', async (e) => 
         // Renter pays deposit + first day fee upfront
         const totalCost = dailyPrice.add(deposit);
         
-        const tx = await contract.rentItem(itemId, { value: totalCost });
+        const tx = await contract.rentItem(itemId, true, { value: totalCost });
         showStatus('Transaction submitted. Waiting for confirmation...', 'success');
         
         await tx.wait();

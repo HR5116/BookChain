@@ -1,5 +1,5 @@
 // Shared contract config — update this address after every deployment
-const contractAddress = "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1";
+const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const contractABI = [
     "function listItem(string _ipfsCID, uint256 _pricePerDay, uint256 _depositAmount) external returns (uint256)",
     "function rentItem(uint256 _itemId, bool _acceptedTerms) external payable",
@@ -7,7 +7,7 @@ const contractABI = [
     "function confirmReturn(uint256 _itemId) external",
     "function raiseDispute(uint256 _itemId) external",
     "function resolveDispute(uint256 _itemId, address _winner) external",
-    "function items(uint256) external view returns (uint256 itemId, address owner, address renter, uint256 pricePerDay, uint256 depositAmount, string ipfsCID, uint8 status, uint256 rentedAt, uint256 returnedAt, uint256 disputeRaisedAt)",
+    "function items(uint256) external view returns (address owner, address renter, uint256 pricePerDay, uint256 depositAmount, uint8 status, uint40 rentedAt, uint40 returnedAt, uint40 disputeRaisedAt, string ipfsCID)",
     "function itemCounter() external view returns (uint256)",
     "function activeRentals(address) external view returns (uint256)",
     "function MAX_ACTIVE_RENTALS() external view returns (uint256)",
@@ -17,7 +17,8 @@ const contractABI = [
     "function getArbitratorCount() external view returns (uint256)",
     "function getArbitratorPool() external view returns (address[])",
     "function isArbitrator(address) external view returns (bool)",
-    "function assignedArbitrator(uint256) external view returns (address)"
+    "function assignedArbitrator(uint256) external view returns (address)",
+    "function getReputation(address) external view returns (int256)"
 ];
 
 const STATUS_MAP = ["Available", "Rented", "AwaitingConfirm", "InDispute", "Closed"];

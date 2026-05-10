@@ -99,7 +99,14 @@ async function loadMyDisputes() {
             if (item.status === 3) { // InDispute
                 const assigned = await contract.assignedArbitrator(item.id);
                 if (assigned.toLowerCase() === myAddress) {
-                    myDisputes.push({ ...item, assignedArb: assigned });
+                    const ownerRep = await contract.getReputation(item.owner);
+                    const renterRep = await contract.getReputation(item.renter);
+                    myDisputes.push({ 
+                        ...item, 
+                        assignedArb: assigned,
+                        ownerRep: ownerRep.toString(),
+                        renterRep: renterRep.toString()
+                    });
                 }
             }
         }
@@ -120,8 +127,8 @@ async function loadMyDisputes() {
                     <span class="badge badge-dispute">ASSIGNED TO YOU</span>
                 </div>
                 <p class="detail"><strong>Title:</strong> ${item.ipfsCID}</p>
-                <p class="detail"><strong>Lender:</strong> <span style="color: var(--warning);">${item.owner}</span></p>
-                <p class="detail"><strong>Borrower:</strong> <span style="color: var(--primary);">${item.renter}</span></p>
+                <p class="detail"><strong>Lender:</strong> <span style="color: var(--warning);">${item.owner}</span> <span class="badge">TrustScore: ${item.ownerRep}</span></p>
+                <p class="detail"><strong>Borrower:</strong> <span style="color: var(--primary);">${item.renter}</span> <span class="badge">TrustScore: ${item.renterRep}</span></p>
                 <p class="detail"><strong>Locked Funds:</strong> ${ethers.utils.formatEther(item.pricePerDay.add(item.depositAmount))} ETH</p>
                 <p class="detail"><strong>Disputed At:</strong> ${new Date(item.disputeRaisedAt.toNumber() * 1000).toLocaleString()}</p>
             </div>
