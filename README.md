@@ -1,49 +1,47 @@
-# 📚 BookChain – Decentralized Book Rental Platform
+# BookChain – Decentralized Book Rental Platform 📚
 
-**Project:** – Decentralised Book Rental
+**Project:** Project 1 – Decentralised Book Rental (CS218)
 
 ## Team Members
-- Mohd Hassan Raza Ansari - 240008019
-- Dhyan Chandra C - 240041014
-- Manish Garasiya - 240041026
-- Manjeet Kumar - 240041027
-- Harsha Varshan Bonu - 240001020
+* Mohd Hassan Raza Ansari - 240008019
+* Dhyan Chandra C - 240041014
+* Manish Garasiya - 240041026
+* Manjeet Kumar - 240041027
+* Harsha Varshan Bonu - 240001020
 
 ---
 
-## Project Overview
-
-BookChain is a decentralized book rental platform built on Ethereum. It allows book owners (lenders) to list their books for rent, and readers (borrowers) to borrow them by paying a daily fee and a security deposit. The entire lifecycle — listing, borrowing, returning, confirming, and dispute resolution — is handled trustlessly through smart contracts.
+## What is this?
+BookChain is a dApp built on Ethereum for renting books. Book owners (lenders) can list their books, and readers can borrow them by putting down a security deposit and a daily fee. The whole thing (listing, renting, returning, and disputes) is managed by our smart contract so it's completely trustless.
 
 ---
 
-## Project Features
+## Features
 
-### Core Rental Lifecycle
-- **Book Listing**: Lenders add books to the library with a daily lending fee and a security deposit. Book metadata is referenced via an IPFS CID.
-- **Borrowing**: Readers pay the security deposit + 1 day's fee upfront to borrow a book. They must accept Terms & Conditions before proceeding.
-- **Returning**: Readers return books, switching the book's status to `AwaitingConfirm`.
-- **Confirm Return**: The lender confirms the book was returned in good condition. The smart contract calculates the rental cost and refunds the security deposit to the reader.
-- **48-Hour Auto-Confirm**: If the lender fails to confirm within 48 hours, the reader (or anyone) can trigger the confirmation to claim their refund.
+### Rental Lifecycle
+- **Listing**: Lenders can add books with a daily fee and deposit. The actual book details are stored on IPFS.
+- **Borrowing**: Readers pay the deposit + 1 day fee upfront to get a book. (They also have to accept our T&Cs)
+- **Returning**: When a reader returns a book, the status goes to `AwaitingConfirm`.
+- **Confirming**: The lender checks the book. The contract calculates the final cost and refunds whatever is left of the deposit.
+- **Auto-Confirm**: If the lender forgets to confirm within 48 hours, anyone can trigger the confirmation to get the renter their refund.
 
-### Rental Constraints
-- **Active Rental Limit**: Each reader can borrow a maximum of **5 books** at a time.
-- **Late Return Penalty**: Books kept beyond **7 days** incur a **2x daily rate** penalty for each overdue day.
-- **Terms of Service**: Readers must accept a liability checkbox before borrowing.
-- **Zero-Fee Lending**: Lenders can list books for free (0 ETH fee) — a confirmation prompt warns them before proceeding.
+### Rules & Constraints
+- Max 5 active rentals per user (don't hoard the books!).
+- Late penalty: 2x the daily rate if you keep it more than 7 days.
+- Zero-fee lending is supported if you just want to lend a book for free.
 
-### Dispute Resolution
-- **Raise Dispute**: If a book is returned damaged, the lender (or renter) can raise a dispute while the book is in `AwaitingConfirm` status.
-- **Random Arbitrator Pool**: Disputes are assigned to a **randomly selected arbitrator** from a registered pool, using `block.prevrandao` for pseudo-random selection. The lender and reader involved are excluded from selection.
-- **Fallback Arbitrator**: The contract deployer is auto-registered as the first arbitrator, so disputes can always be raised even if nobody else has registered.
-- **Resolve Dispute**: Only the assigned arbitrator can resolve the dispute. They choose the winner, and all locked funds (deposit + fee) are transferred to the winner.
+### Dispute System (This was hard to build!)
+- **Raise Dispute**: If a book comes back ruined, either party can raise a dispute.
+- **Random Arbitrator**: We use `block.prevrandao` to pick a random arbitrator from the pool (excluding the lender and renter so it's fair). 
+- **Fallback**: The contract deployer is automatically an arbitrator just in case the pool is empty.
+- **Resolution**: The assigned arbitrator picks a winner, who gets all the locked funds.
 
-### Multi-Page Frontend
-| Page | Role | Actions |
-|------|------|---------|
-| **Lender's Shelf** | Book Owner | Add books, confirm returns, report damaged books |
-| **Library Catalog** | Reader | Browse catalog, borrow books, return books, raise disputes |
-| **Arbitrator Panel** | Arbitrator | Register/unregister, view assigned disputes, resolve disputes |
+### Frontend
+We have 3 main views:
+- **Lender Dashboard** - list books, confirm returns.
+- **Library Catalog** - for readers to browse and borrow.
+- **Arbitrator Panel** - for resolving disputes.
+
 
 ---
 
@@ -185,14 +183,14 @@ We have strictly adhered to privacy requirements:
 
 ---
 
-## Known Issues / Limitations
-- The IPFS CID requires pinning; if unpinned, book metadata may become unavailable.
-- The random arbitrator selection uses `block.prevrandao`, which is suitable for a student project but not for high-stakes mainnet production (miners can influence it).
-- Currently designed for Hardhat localhost testing; testnet deployment configuration is not yet included.
-- MetaMask does not display internal transactions (contract → wallet refunds) in the activity tab — users must check their balance directly.
-- The `activeRentals` counter relies on clean `confirmReturn` or `resolveDispute` calls. Interrupted flows may leave the counter stale.
+## Known Issues / Things we couldn't fix
+- The IPFS CID requires pinning. If we forget to pin it or the node goes down, the book cover might not load.
+- Random arbitrator selection uses `block.prevrandao`. It works fine for our project demo, but we know miners could theoretically manipulate it on mainnet.
+- Hardhat localhost only for now.
+- MetaMask is weird about internal transactions (contract -> wallet refunds), so you have to actually check your balance to see the refund. It doesn't show in the activity tab.
+- If someone interrupts the `confirmReturn` flow, the `activeRentals` counter might get slightly out of sync.
 
 ---
 
 ## License
-MIT
+MIT (feel free to use it)

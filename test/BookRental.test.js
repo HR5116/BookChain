@@ -16,9 +16,10 @@ describe("BookRental", function () {
     const BookRental = await ethers.getContractFactory("BookRental");
     bookRental = await BookRental.deploy();
     await bookRental.deployed();
+    // console.log("Contract deployed to:", bookRental.address);
   });
 
-  // ─── LISTING ───
+  // ─── LISTING BOOKS ───
   describe("listItem", function () {
     it("Should successfully list a book", async function () {
       const tx = await bookRental.connect(owner).listItem("ipfs://cid123", PRICE_PER_DAY, DEPOSIT);
@@ -189,7 +190,7 @@ describe("BookRental", function () {
       // Deposit: 0.05. Wait, 0.08 > 0.05. Let's use a smaller penalty.
       
       // Let's use 7 days + 1 hour (charges 8 days)
-      // We need a larger deposit for this test.
+      // We need a larger deposit for this test otherwise it drains it all.
       await bookRental.connect(owner).listItem("BigDeposit", PRICE_PER_DAY, ethers.utils.parseEther("0.2"));
       await bookRental.connect(renter).rentItem(2, true, { value: PRICE_PER_DAY.add(ethers.utils.parseEther("0.2")) });
       
@@ -236,7 +237,7 @@ describe("BookRental", function () {
       await ethers.provider.send("evm_increaseTime", [10 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine");
 
-      // Re-return (need to return again with updated timestamp)
+      // TODO: fix this test later, it's a bit tricky to mock the timestamps perfectly
       // Actually the return was already done, but returnedAt was set at that time.
       // Let's re-create this test properly by modifying flow
     });

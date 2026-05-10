@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Decentralized Book Rental Platform
-/// @notice Uses a random arbitrator pool — a different arbitrator is picked for every dispute
+/// @notice This uses a random arbitrator pool — a different arbitrator is picked every time there's a dispute
 contract BookRental is ReentrancyGuard, Ownable {
     error BookRental__NotArbitrator();
     error BookRental__NotItemOwner();
@@ -62,7 +62,7 @@ contract BookRental is ReentrancyGuard, Ownable {
     event ArbitratorRemoved(address indexed arbitrator);
 
     constructor() Ownable(msg.sender) {
-        // Auto-register deployer as fallback arbitrator so disputes always work
+        // Auto-register deployer as fallback arbitrator so we don't get stuck if no one registers
         isArbitrator[msg.sender] = true;
         arbitratorPool.push(msg.sender);
     }
@@ -132,7 +132,7 @@ contract BookRental is ReentrancyGuard, Ownable {
             return owner();
         }
 
-        // Pseudo-random selection using prevrandao + block data
+        // Pseudo-random selection using prevrandao + block data (not perfect but works for this)
         uint256 randomIndex = uint256(
             keccak256(abi.encodePacked(block.prevrandao, block.timestamp, _itemId, msg.sender))
         ) % eligibleCount;
@@ -215,7 +215,8 @@ contract BookRental is ReentrancyGuard, Ownable {
         Item storage item = items[_itemId];
         if (item.status != Status.AwaitingConfirm) revert BookRental__InvalidStatus();
         
-        // Allow owner to confirm, or anyone (including renter) if 48h has passed since return
+        // Allow owner to confirm, or literally anyone (including renter) if 48h has passed since return
+        // this stops the owner from just holding the deposit forever
         if (msg.sender != item.owner && block.timestamp < item.returnedAt + 48 hours) {
             revert BookRental__NotItemOwner();
         }
@@ -259,6 +260,7 @@ contract BookRental is ReentrancyGuard, Ownable {
         address payable previousRenter = item.renter;
         item.renter = payable(address(0));
 
+        // update the counter
         unchecked { --activeRentals[previousRenter]; }
 
         // Update Reputation for successful transaction (+1 to both)
