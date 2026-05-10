@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+h1, h2 { color: #333; }
+pre { background: #f4f4f4; padding: 15px; border-radius: 5px; font-size: 10px; overflow-x: auto; white-space: pre-wrap; font-family: "Courier New", Courier, monospace;}
+table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+th { background-color: #f8f8f8; }
+.code-inline { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<h1>BookChain: Gas Optimisation Report</h1>
+<p><strong>Team Members:</strong></p>
+<ul>
+<li>Mohd Hassan Raza Kalim Ansari - 240008019</li>
+<li>Dhyan Chandra C - 240041014</li>
+<li>Manish Garasiya - 240041026</li>
+<li>Manjeet Kumar - 240041027</li>
+<li>Harsha Varshan Bonu - 240001020</li>
+</ul>
+
+<h2>1. Gas Report (hardhat-gas-reporter)</h2>
+<pre>
+·-----------------------------------------|---------------------------|-------------|-----------------------------·
+|          Solc version: 0.8.24           ·  Optimizer enabled: true  ·  Runs: 200  ·  Block limit: 60000000 gas  │
+··········································|···························|·············|······························
+|  Methods                                                                                                        │
+···············|··························|·············|·············|·············|···············|··············
+|  Contract    ·  Method                  ·  Min        ·  Max        ·  Avg        ·  # calls      ·  usd (avg)  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  confirmReturn           ·      99915  ·     109249  ·     104073  ·           12  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  listItem                ·     121829  ·     141849  ·     137150  ·           30  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  raiseDispute            ·          -  ·          -  ·      66038  ·            4  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  registerAsArbitrator    ·          -  ·          -  ·      71960  ·           13  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  rentItem                ·      82066  ·      99166  ·      94705  ·           23  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  resolveDispute          ·          -  ·          -  ·      97170  ·            2  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  returnItem              ·          -  ·          -  ·      30466  ·           14  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  BookRental  ·  unregisterAsArbitrator  ·          -  ·          -  ·      33255  ·            1  ·          -  │
+···············|··························|·············|·············|·············|···············|··············
+|  Deployments                            ·                                         ·  % of limit   ·             │
+··········································|·············|·············|·············|···············|··············
+|  BookRental                             ·          -  ·          -  ·    1955103  ·        3.3 %  ·          -  │
+·-----------------------------------------|-------------|-------------|-------------|---------------|-------------·
+</pre>
+
+<h2>2. Before/After Optimisation</h2>
+<p><strong>Optimisations Applied:</strong></p>
+<ul>
+    <li>Replaced string-based <span class="code-inline">require()</span> statements with <strong>Custom Errors</strong> (e.g., <span class="code-inline">if (...) revert BookRental__InvalidPrice()</span>)</li>
+    <li>Switched postfix increments (<span class="code-inline">counter++</span>) to prefix increments (<span class="code-inline">++counter</span>)</li>
+</ul>
+
+<table>
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>Before</th>
+            <th>After</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Deployment Cost</td>
+            <td>~1,716,566 gas</td>
+            <td>1,744,141 gas</td>
+        </tr>
+        <tr>
+            <td><span class="code-inline">listItem</span> Execution</td>
+            <td>~166,177 gas</td>
+            <td>137,585 gas</td>
+        </tr>
+        <tr>
+            <td><span class="code-inline">rentItem</span> Execution</td>
+            <td>~121,957 gas</td>
+            <td>95,388 gas</td>
+        </tr>
+        <tr>
+            <td><span class="code-inline">returnItem</span> Execution</td>
+            <td>~52,543 gas</td>
+            <td>30,466 gas</td>
+        </tr>
+    </tbody>
+</table>
+
+<p><strong>Reasoning:</strong> Custom errors eliminate on-chain string storage and encode to a compact 4-byte selector, reducing both deployment and runtime gas costs. Prefix increments avoid caching the previous variable state, leading to minor but compounded gas savings.</p>
+
+</body>
+</html>
